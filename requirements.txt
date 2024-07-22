@@ -1,6 +1,5 @@
-numpy
-pip
-streamlit
-Pillow
-keras
-tensorflow==2.14.0
+streamlit==0.57.3
+tensorflow==2.9.3
+Pillow==9.3.0
+numpy==1.22.0
+Keras-Preprocessing==1.1.0
