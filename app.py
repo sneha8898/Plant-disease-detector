@@ -1,3 +1,5 @@
+# main.py
+
 import streamlit as st
 from PIL import Image
 import io
@@ -8,26 +10,26 @@ from utils import clean_image, get_prediction, make_results
 # Define a function to load and cache the model
 @st.cache(allow_output_mutation=True)
 def load_model(path):
-    # Define model architecture
+    # Define input tensor
     inputs = tf.keras.Input(shape=(512, 512, 3))
-
+    
     # Xception Model
-    xception_base = tf.keras.applications.Xception(include_top=False, weights='imagenet', input_shape=(512, 512, 3))
-    xception_out = tf.keras.layers.GlobalAveragePooling2D()(xception_base.output)
+    xception_base = tf.keras.applications.Xception(include_top=False, weights='imagenet', input_shape=(512, 512, 3))(inputs)
+    xception_out = tf.keras.layers.GlobalAveragePooling2D()(xception_base)
     xception_out = tf.keras.layers.Dense(4, activation='softmax')(xception_out)
     xception_model = tf.keras.Model(inputs, xception_out)
 
     # DenseNet Model
-    densenet_base = tf.keras.applications.DenseNet121(include_top=False, weights='imagenet', input_shape=(512, 512, 3))
-    densenet_out = tf.keras.layers.GlobalAveragePooling2D()(densenet_base.output)
+    densenet_base = tf.keras.applications.DenseNet121(include_top=False, weights='imagenet', input_shape=(512, 512, 3))(inputs)
+    densenet_out = tf.keras.layers.GlobalAveragePooling2D()(densenet_base)
     densenet_out = tf.keras.layers.Dense(4, activation='softmax')(densenet_out)
     densenet_model = tf.keras.Model(inputs, densenet_out)
 
-    # Ensembling the Models
+    # Get outputs from both models
     xception_output = xception_model(inputs)
     densenet_output = densenet_model(inputs)
 
-    # Average the outputs of the two models
+    # Combine the outputs
     outputs = tf.keras.layers.Average()([xception_output, densenet_output])
     model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
