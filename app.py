@@ -7,52 +7,41 @@ import numpy as np
 import tensorflow as tf
 from utils import clean_image, get_prediction, make_results
 
-# Define a function to load and cache the model
-@st.cache(allow_output_mutation=True)
-def load_model(path):
-    # Define input tensor
-    inputs = tf.keras.Input(shape=(512, 512, 3))
-    
-    # Xception Model
-    xception_base = tf.keras.applications.Xception(include_top=False, weights='imagenet', input_shape=(512, 512, 3))(inputs)
-    xception_out = tf.keras.layers.GlobalAveragePooling2D()(xception_base)
-    xception_out = tf.keras.layers.Dense(4, activation='softmax')(xception_out)
-    xception_model = tf.keras.Model(inputs, xception_out)
+# Define the model creation function
+def create_model():
+    # Define the Xception model
+    xception_base = tf.keras.applications.Xception(weights='imagenet', include_top=False, input_shape=(512, 512, 3))
+    xception_out = xception_base.output
 
-    # DenseNet Model
-    densenet_base = tf.keras.applications.DenseNet121(include_top=False, weights='imagenet', input_shape=(512, 512, 3))(inputs)
-    densenet_out = tf.keras.layers.GlobalAveragePooling2D()(densenet_base)
-    densenet_out = tf.keras.layers.Dense(4, activation='softmax')(densenet_out)
-    densenet_model = tf.keras.Model(inputs, densenet_out)
+    # Define the DenseNet model
+    densenet_base = tf.keras.applications.DenseNet121(weights='imagenet', include_top=False, input_shape=(512, 512, 3))
+    densenet_out = densenet_base.output
 
-    # Get outputs from both models
-    xception_output = xception_model(inputs)
-    densenet_output = densenet_model(inputs)
+    # Add custom layers on top
+    combined = tf.keras.layers.Concatenate()([xception_out, densenet_out])
+    x = tf.keras.layers.GlobalAveragePooling2D()(combined)
+    x = tf.keras.layers.Dense(512, activation='relu')(x)
+    outputs = tf.keras.layers.Dense(10, activation='softmax', name='output')(x)  # Ensure the output layer name is unique
 
-    # Combine the outputs
-    outputs = tf.keras.layers.Average()([xception_output, densenet_output])
-    model = tf.keras.Model(inputs=inputs, outputs=outputs)
-
-    # Load the model weights
-    model.load_weights(path)
+    # Create the model
+    model = tf.keras.Model(inputs=[xception_base.input, densenet_base.input], outputs=outputs)
 
     return model
 
-# Removing Menu
-hide_streamlit_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            </style>
-            """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
+# Define the load_model function
+@st.cache_resource
+def load_model(path):
+    model = create_model()  # Recreate the model structure
+    model.load_weights(path)  # Load the model weights
+    return model
 
-# Loading the Model
-model = load_model('model.h5')
+# Load the Model
+model = load_model('/model.h5')
 
 # Title and Description
 st.title('Plant Disease Detection')
-st.write("Just Upload your Plant's Leaf Image and get predictions if the plant is healthy or not")
+st.write("Just Upload your Plant's Leaf Image and get predictions if the plant has any disease.")
+
 
 # Setting the files that can be uploaded
 uploaded_file = st.file_uploader("Choose an Image file", type=["png", "jpg", "jpeg"])
