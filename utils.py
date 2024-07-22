@@ -4,30 +4,52 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 
-# Clean the image
+
+# Cleanig image    
 def clean_image(image):
     image = np.array(image)
+    
     # Resizing the image
-    image = np.array(Image.fromarray(image).resize((512, 512), Image.LANCZOS))  # Updated to LANCZOS
-    # Adding batch dimensions to the image, taking only the first 3 channels
+    image = np.array(Image.fromarray(
+        image).resize((512, 512), Image.ANTIALIAS))
+        
+    # Adding batch dimensions to the image
+    # YOu are seeting :3, that's becuase sometimes user upload 4 channel image,
     image = image[np.newaxis, :, :, :3]
+    # So we just take first  3 channels
+    
     return image
-
-# Get the prediction from the model
+    
+    
 def get_prediction(model, image):
-    datagen = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1./255)
-    test = datagen.flow(image)
-    predictions = model.predict(test)
-    predictions_arr = np.argmax(predictions, axis=1)  # Changed to axis=1
-    return predictions, predictions_arr
 
-# Make results from the predictions
+    datagen = tf.keras.preprocessing.image.ImageDataGenerator(
+        rescale=1./255)
+    
+    # Inputting the image to keras generators
+    test = datagen.flow(image)
+    
+    # Predict from the image
+    predictions = model.predict(test)
+    predictions_arr = np.array(np.argmax(predictions))
+    
+    return predictions, predictions_arr
+    
+
+# Making the final results 
 def make_results(predictions, predictions_arr):
+    
     result = {}
-    class_names = ['Healthy', 'Multiple Diseases', 'Rust', 'Scab']  # Ensure these are correct
-    prediction_percentage = [f"{int(pred*100)}%" for pred in predictions[0]]
-    result = {
-        "status": f"has {class_names[int(predictions_arr)]}",
-        "prediction": prediction_percentage[int(predictions_arr)]
-    }
-    return result
+    if int(predictions_arr) == 0:
+        result = {"status": " is Healthy ",
+                    "prediction": f"{int(predictions[0][0].round(2)*100)}%"}
+    if int(predictions_arr) == 1:
+        result = {"status": ' has Multiple Diseases ',
+                    "prediction": f"{int(predictions[0][1].round(2)*100)}%"}
+    if int(predictions_arr) == 2:
+        result = {"status": ' has Rust ',
+                    "prediction": f"{int(predictions[0][2].round(2)*100)}%"}
+    if int(predictions_arr) == 3:
+        result = {"status": ' has Scab ',
+                    "prediction": f"{int(predictions[0][3].round(2)*100)}%"}
+    return result   
