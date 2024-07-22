@@ -53,7 +53,7 @@ hide_streamlit_style = """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
 
 # Loading the Model
-model = load_model('results\model.h5')
+model = load_model('model.h5')
 
 # Title and Description
 st.title('Plant Diesease Detection')
